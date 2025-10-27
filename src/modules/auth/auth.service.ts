@@ -39,6 +39,10 @@ export class AuthService {
   async login(loginDto: LoginDTO): Promise<UserResponseDTO> {
     // find user by email
     const foundUser = await this.userService.findByEmailOrThrow(loginDto.email);
+
+    if (foundUser.isDeleted) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
     // verify password with argon
     const isPasswordValid = await this.verifyPassword(
       loginDto.password,

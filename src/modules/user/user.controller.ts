@@ -1,13 +1,29 @@
-import { Controller, Get, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  Body,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { UserService } from './user.service';
+import type { PaginationQueryType } from 'src/types/util.types';
+import type { updateUserDTO } from './dto/user.dto';
+import { ZodValidationPipe } from 'src/pipes/zod.validation.pipe';
+import { updateUserSchema } from './util/user.validation.schema';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
-  findAll() {
-    return this.userService.findAll();
+  findAll(@Query() query: PaginationQueryType = { limit: 10, page: 1 }) {
+    return this.userService.findAll({
+      limit: Number(query.limit),
+      page: Number(query.page),
+    } as Required<PaginationQueryType>);
   }
 
   @Get(':id')
@@ -16,12 +32,17 @@ export class UserController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: bigint) {
-    return this.userService.update(id);
+  update(
+    @Param('id') id: bigint,
+    @Body(new ZodValidationPipe(updateUserSchema))
+    userUpdatePayload: updateUserDTO,
+  ) {
+    return this.userService.update(id, userUpdatePayload);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: bigint) {
-    return this.userService.remove(id);
+  async delete(@Param('id') id: bigint) {
+    const removedUser = await this.userService.delete(id);
+    return Boolean(removedUser);
   }
 }

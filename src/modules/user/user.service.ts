@@ -4,6 +4,11 @@ import { RegisterDTO, UserResponseDTO } from '../auth/dto/auth.dto';
 import { DatabaseService } from '../database/database.service';
 import { User } from 'generated/prisma';
 import { removeFields } from '../utils/object.util';
+import {
+  PaginationQueryType,
+  PaginationResponseType,
+} from 'src/types/util.types';
+import { updateUserDTO } from './dto/user.dto';
 
 @Injectable()
 export class UserService {
@@ -15,8 +20,30 @@ export class UserService {
     });
   }
 
-  findAll() {
-    return this.prismaService.user.findMany();
+  findAll(
+    query: Required<PaginationQueryType>,
+  ): Promise<PaginationResponseType<Omit<User, 'password'>>> {
+    return this.prismaService.$transaction(async (prisma) => {
+      const users = await prisma.user.findMany({
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+        omit: {
+          password: true,
+        },
+      });
+
+      const count = await prisma.user.count();
+
+      return {
+        data: users,
+        meta: {
+          total: count,
+          page: query.page,
+          limit: query.limit,
+          totalPages: Math.ceil(count / query.limit),
+        },
+      };
+    });
   }
 
   findByEmailOrThrow(email: string) {
@@ -26,16 +53,31 @@ export class UserService {
   }
 
   findOne(id: bigint) {
-    return `This action returns a #${id} user`;
+    return this.prismaService.user.findUnique({
+      where: { id },
+      omit: { password: true },
+    });
   }
 
-  update(id: bigint) {
-    return `This action updates a #${id} user`;
+  update(id: bigint, userUpdatePayload: updateUserDTO) {
+    {
+      return this.prismaService.user.update({
+        where: { id },
+        data: userUpdatePayload,
+        omit: {
+          password: true,
+        },
+      });
+    }
   }
 
-  remove(id: bigint) {
-    return `This action removes a #${id} user`;
+  delete(id: bigint) {
+    return this.prismaService.user.update({
+      where: { id },
+      data: { isDeleted: true },
+    });
   }
+
   mapUserWithoutPasswordAndCastBigint(user: User): UserResponseDTO['userData'] {
     const userWithoutPassword = removeFields(user, ['password']);
 

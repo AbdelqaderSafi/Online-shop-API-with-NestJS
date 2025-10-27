@@ -13,4 +13,7 @@ declare global {
   namespace NodeJS {
     interface ProcessEnv extends EnvVariables {}
   }
+  interface BigInt {
+    toJSON(): string;
+  }
 }

@@ -39,10 +39,12 @@ model User {
   password    String       @db.VarChar(255)
   role        UserRole     
   createdAt   DateTime    @default(now()) @map("created_at")
+  isDeleted   Boolean     @default(false) @map("is_deleted")
+  
   // Relations
   orders      Order[]   
   transactions UserTransaction[]
-  products   Product[]  
+  products    Product[]  
 
   @@index([name], map: "users_name_index")
   @@map("users")
