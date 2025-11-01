@@ -2,7 +2,10 @@ import { Product } from 'generated/prisma';
 import { faker } from '@faker-js/faker';
 
 export const generatedProductSeed = (merchantId: bigint) => {
-  const seededProduct: Omit<Product, 'id' | 'createdAt' | 'price'> & {
+  const seededProduct: Omit<
+    Product,
+    'id' | 'createdAt' | 'price' | 'isDeleted'
+  > & {
     price: number;
   } = {
     name: faker.commerce.productName(),

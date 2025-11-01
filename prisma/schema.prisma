@@ -56,6 +56,7 @@ model Product {
   imageUrl    String   @map("image_url") @db.VarChar(255)
   price       Decimal  @db.Decimal(8, 2)
   merchantId  BigInt   @map("merchant_id") @db.UnsignedBigInt
+  isDeleted   Boolean  @default(false) @map("is_deleted")
 
   // Relations
   orderProducts OrderProduct[]
