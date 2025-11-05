@@ -30,8 +30,12 @@ enum ReturnStatus {
   PICKED
   REFUND
   PENDING
-  
 }
+enum StorageProviderName {
+  IMAGE_KIT
+  AWS_S3
+}
+
 model User {
   id          BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
   name        String       @db.VarChar(255)
@@ -44,7 +48,8 @@ model User {
   // Relations
   orders      Order[]   
   transactions UserTransaction[]
-  products    Product[]  
+  products    Product[]
+  Assets      Asset[]
 
   @@index([name], map: "users_name_index")
   @@map("users")
@@ -53,7 +58,6 @@ model Product {
   id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
   name        String   @db.VarChar(255)
   description String   @db.Text
-  imageUrl    String   @map("image_url") @db.VarChar(255)
   price       Decimal  @db.Decimal(8, 2)
   merchantId  BigInt   @map("merchant_id") @db.UnsignedBigInt
   isDeleted   Boolean  @default(false) @map("is_deleted")
@@ -62,6 +66,7 @@ model Product {
   orderProducts OrderProduct[]
   returnedItems ReturnedItem[]
   merchant      User     @relation(fields: [merchantId], references: [id])
+  Assets        Asset[]
 
   @@map("products")
 }
@@ -80,6 +85,25 @@ model Order {
 
   @@map("orders")
 }
+
+model Asset {
+  id                  BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  storageProviderName StorageProviderName @default(IMAGE_KIT) @map("storage_provider_name")
+  fileId              String              @db.VarChar(255)
+  url                 String              @db.VarChar(255)
+  fileType            String              @db.VarChar(255)
+  fileSizeInKB        Int                 @db.UnsignedInt 
+  ownerId             BigInt              @map("owner_id") @db.UnsignedBigInt
+  createdAt           DateTime            @default(now()) @map("created_at")
+  productId           BigInt?             @map("product_id") @db.UnsignedBigInt
+
+  // Relations
+  owner               User        @relation(fields: [ownerId], references: [id])
+  product             Product?     @relation(fields: [productId], references: [id])
+
+  @@map("assets")
+}
+
 model OrderProduct {
   orderId      BigInt  @map("order_id") @db.UnsignedBigInt
   productId    BigInt  @map("product_id") @db.UnsignedBigInt

@@ -11,7 +11,6 @@ export const generatedProductSeed = (merchantId: bigint) => {
     name: faker.commerce.productName(),
     description: faker.commerce.productDescription(),
     price: parseFloat(faker.commerce.price()),
-    imageUrl: faker.image.url(),
     merchantId,
   };
   return seededProduct;

@@ -3,14 +3,35 @@ import type { CreateProductDTO, UpdateProductDTO } from './types/product.dto';
 import { DatabaseService } from '../database/database.service';
 import { ProductQuery } from './types/product.types';
 import { Prisma } from 'generated/prisma/wasm';
-import th from 'zod/v4/locales/th.js';
+import { FilesService } from '../files/files.service';
+import { SideEffectQueue } from 'src/modules/utils/side.effects';
 
 @Injectable()
 export class ProductService {
-  constructor(private readonly prismaService: DatabaseService) {}
+  constructor(
+    private readonly prismaService: DatabaseService,
+    private readonly filesService: FilesService,
+  ) {}
 
-  create(createProductDto: CreateProductDTO) {
-    return 'This action adds a new product';
+  create(
+    createProductDto: CreateProductDTO,
+    user: Express.Request['user'],
+    file?: Express.Multer.File,
+  ) {
+    const dataPayload: Prisma.ProductUncheckedCreateInput = {
+      ...createProductDto,
+      merchantId: Number(user!.id),
+    };
+    if (file) {
+      dataPayload.Assets = {
+        create: this.filesService.createFileAssetData(file, Number(user!.id)),
+      };
+    }
+
+    return this.prismaService.product.create({
+      data: dataPayload,
+      include: { Assets: true },
+    });
   }
 
   findAll(query: Required<Omit<ProductQuery, 'name'>> & { name?: string }) {
@@ -49,8 +70,48 @@ export class ProductService {
     });
   }
 
-  update(id: bigint, updateProductDto: UpdateProductDTO) {
-    return `This action updates a #${id} product`;
+  async update(
+    id: number,
+    updatePayload: UpdateProductDTO,
+    user: Express.Request['user'],
+    file?: Express.Multer.File,
+  ) {
+    // get instance side effects queue
+    const sideEffects = new SideEffectQueue();
+
+    // run prisma transaction { invoke fileservice.deleteFile (prismaTX, productId, user, sideEffect) , prismaUpdate }
+    const updatedProduct = await this.prismaService.$transaction(
+      async (prismaTX) => {
+        // if file is present, delete old file asset
+        if (file) {
+          await this.filesService.deleteProductAsset(
+            prismaTX,
+            id,
+            Number(user!.id),
+            sideEffects,
+          );
+        }
+        const dataPayload: Prisma.ProductUncheckedUpdateInput = {
+          ...updatePayload,
+        };
+        if (file) {
+          dataPayload.Assets = {
+            create: this.filesService.createFileAssetData(
+              file,
+              Number(user!.id),
+            ),
+          };
+        }
+        return await prismaTX.product.update({
+          where: { id: BigInt(id) },
+          data: dataPayload,
+          include: { Assets: true },
+        });
+      },
+    );
+    // execute side effects
+    await sideEffects.runAll();
+    return updatedProduct;
   }
 
   remove(id: bigint) {
