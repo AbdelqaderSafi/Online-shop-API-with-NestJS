@@ -13,17 +13,18 @@ import type { PaginationQueryType } from 'src/types/util.types';
 import type { updateUserDTO } from './dto/user.dto';
 import { ZodValidationPipe } from 'src/pipes/zod.validation.pipe';
 import { updateUserSchema } from './util/user.validation.schema';
+import { paginationSchema } from '../utils/api.util';
 
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @Get()
-  findAll(@Query() query: PaginationQueryType = { limit: 10, page: 1 }) {
-    return this.userService.findAll({
-      limit: Number(query.limit),
-      page: Number(query.page),
-    } as Required<PaginationQueryType>);
+  findAll(
+    @Query(new ZodValidationPipe(paginationSchema))
+    query: PaginationQueryType,
+  ) {
+    return this.userService.findAll(query);
   }
 
   @Get(':id')

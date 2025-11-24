@@ -1,5 +1,7 @@
 import { z, ZodType } from 'zod';
 import { CreateProductDTO, UpdateProductDTO } from '../types/product.dto';
+import { paginationSchema } from 'src/modules/utils/api.util';
+import { ProductQuery } from '../types/product.types';
 
 export const productValidationSchema = z.object({
   name: z.string().min(2).max(100),
@@ -11,3 +13,7 @@ export const updateProductValidationSchema =
   productValidationSchema.partial() satisfies ZodType<
     Partial<UpdateProductDTO>
   >;
+
+export const productPaginationSchema = paginationSchema.extend({
+  name: z.string().min(1).max(255).optional(),
+}) satisfies ZodType<ProductQuery>;

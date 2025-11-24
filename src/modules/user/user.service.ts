@@ -21,33 +21,31 @@ export class UserService {
   }
 
   findAll(
-    query: Required<PaginationQueryType>,
+    query: PaginationQueryType,
   ): Promise<PaginationResponseType<Omit<User, 'password'>>> {
     return this.prismaService.$transaction(async (prisma) => {
+      const pagination = this.prismaService.handleQueryPagination(query);
       const users = await prisma.user.findMany({
-        skip: (query.page - 1) * query.limit,
-        take: query.limit,
+        ...removeFields(pagination, ['page']),
         omit: {
           password: true,
         },
       });
 
       const count = await prisma.user.count();
-
       return {
         data: users,
-        meta: {
-          total: count,
-          page: query.page,
-          limit: query.limit,
-          totalPages: Math.ceil(count / query.limit),
-        },
+        ...this.prismaService.formatPaginationResponse({
+          page: pagination.page,
+          count,
+          limit: pagination.take,
+        }),
       };
     });
   }
 
-  findByEmailOrThrow(email: string) {
-    return this.prismaService.user.findUniqueOrThrow({
+  findByEmail(email: string) {
+    return this.prismaService.user.findUnique({
       where: { email },
     });
   }

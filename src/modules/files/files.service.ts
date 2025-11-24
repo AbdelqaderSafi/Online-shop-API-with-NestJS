@@ -32,8 +32,7 @@ export class FilesService {
       _removeFile: (req, file, cb) => {
         if (!file.fileId) return cb(null);
         console.log('_removeFile of custom storage called');
-        this.imageKit.files
-          .delete(file.fileId)
+        this.deleteFileFromImageKit(file.fileId)
           .then(() => cb(null))
           .catch(cb);
       },
@@ -76,5 +75,8 @@ export class FilesService {
         await this.imageKit.files.delete(asset.fileId);
       });
     });
+  }
+  deleteFileFromImageKit(fileId: string) {
+    return this.imageKit.files.delete(fileId);
   }
 }

@@ -1,3 +1,4 @@
+import { HttpStatus } from '@nestjs/common';
 import { Prisma } from 'generated/prisma';
 
 export type PaginationQueryType = {
@@ -5,8 +6,7 @@ export type PaginationQueryType = {
   limit?: number;
 };
 
-export type PaginationResponseType<T> = {
-  data: T[];
+export type PaginationResponseMetaDataType = {
   meta: {
     total: number;
     page: number;
@@ -15,4 +15,24 @@ export type PaginationResponseType<T> = {
   };
 };
 
+export type PaginationResponseType<T> = {
+  data: T[];
+} & PaginationResponseMetaDataType;
+
 export type TransactionClient = Prisma.TransactionClient;
+
+export type ApiSuccessResponse<T> = {
+  success: true;
+  data: T | T[];
+} & Partial<PaginationResponseMetaDataType>;
+
+export type ApiErrorResponse = {
+  success: false;
+  message: string;
+  timestamp: string;
+  statusCode: HttpStatus;
+  path: string;
+  fields?: { field: string; message: string }[];
+};
+
+export type UnifiedResponse<T> = ApiSuccessResponse<T>;

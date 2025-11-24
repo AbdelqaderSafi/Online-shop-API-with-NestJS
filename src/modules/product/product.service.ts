@@ -5,6 +5,7 @@ import { ProductQuery } from './types/product.types';
 import { Prisma } from 'generated/prisma/wasm';
 import { FilesService } from '../files/files.service';
 import { SideEffectQueue } from 'src/modules/utils/side.effects';
+import { removeFields } from '../utils/object.util';
 
 @Injectable()
 export class ProductService {
@@ -34,17 +35,16 @@ export class ProductService {
     });
   }
 
-  findAll(query: Required<Omit<ProductQuery, 'name'>> & { name?: string }) {
+  findAll(query: ProductQuery) {
     return this.prismaService.$transaction(async (prisma) => {
       const whereClause: Prisma.ProductWhereInput = query.name
         ? {
             name: { contains: query.name },
           }
         : {};
-
+      const pagination = this.prismaService.handleQueryPagination(query);
       const products = await prisma.product.findMany({
-        skip: (query.page - 1) * query.limit,
-        take: query.limit,
+        ...removeFields(pagination, ['page']),
         where: whereClause,
       });
 
@@ -54,19 +54,19 @@ export class ProductService {
 
       return {
         data: products,
-        meta: {
-          total: count,
-          page: query.page,
-          limit: query.limit,
-          totalPages: Math.ceil(count / query.limit),
-        },
+        ...this.prismaService.formatPaginationResponse({
+          page: pagination.page,
+          count,
+          limit: pagination.take,
+        }),
       };
     });
   }
 
-  findOne(id: bigint) {
+  findOne(id: number) {
     return this.prismaService.product.findUnique({
-      where: { id: BigInt(id) },
+      where: { id },
+      include: { Assets: true },
     });
   }
 
@@ -114,7 +114,10 @@ export class ProductService {
     return updatedProduct;
   }
 
-  remove(id: bigint) {
-    return `This action removes a #${id} product`;
+  remove(id: number, user: Express.Request['user']) {
+    return this.prismaService.product.update({
+      where: { id, merchantId: Number(user!.id) },
+      data: { isDeleted: true },
+    });
   }
 }

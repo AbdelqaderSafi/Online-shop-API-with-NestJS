@@ -9,9 +9,8 @@ import {
   Query,
   UseInterceptors,
   UploadedFile,
-  ParseFilePipeBuilder,
-  Req,
   ParseIntPipe,
+  UseFilters,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import type {
@@ -23,10 +22,16 @@ import type { ProductQuery } from './types/product.types';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ZodValidationPipe } from 'src/pipes/zod.validation.pipe';
 import {
+  productPaginationSchema,
   productValidationSchema,
   updateProductValidationSchema,
 } from './util/product.validation';
 import { Roles } from 'src/decorators/roles.decorator';
+import { User } from 'src/decorators/user.decorator';
+import { UserResponseDTO } from '../auth/dto/auth.dto';
+import { ImageKitExceptionFilter } from 'src/exceptions/exception';
+import { FileCleanupInterceptor } from '../files/cleanup-files.interceptor';
+import { IdempotencyInterceptor } from 'src/interceptor/idempotency.interceptor';
 
 @Controller('product')
 @Roles(['MERCHANT'])
@@ -34,44 +39,58 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    IdempotencyInterceptor,
+    FileInterceptor('file'),
+    FileCleanupInterceptor,
+  )
+  @UseFilters(ImageKitExceptionFilter)
   create(
     @Body(new ZodValidationPipe(productValidationSchema))
     createProductDto: CreateProductDTO,
-    @Req() request: Express.Request,
+    @User() user: UserResponseDTO['userData'],
     @UploadedFile()
     file?: Express.Multer.File,
   ): Promise<ProductResponseDTO> {
-    return this.productService.create(createProductDto, request.user, file);
+    return this.productService.create(createProductDto, user, file);
   }
 
   @Roles(['MERCHANT', 'CUSTOMER'])
   @Get()
-  findAll(@Query() query: ProductQuery) {
-    // return this.productService.findAll();
+  findAll(
+    @Query(new ZodValidationPipe(productPaginationSchema)) query: ProductQuery,
+  ) {
+    return this.productService.findAll(query);
   }
 
   @Roles(['MERCHANT', 'CUSTOMER'])
   @Get(':id')
-  findOne(@Param('id') id: bigint) {
+  findOne(@Param('id', ParseIntPipe) id: number) {
     return this.productService.findOne(id);
   }
 
   @Patch(':id')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    IdempotencyInterceptor,
+    FileInterceptor('file'),
+    FileCleanupInterceptor,
+  )
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body(new ZodValidationPipe(updateProductValidationSchema))
     updatePayload: UpdateProductDTO,
     @UploadedFile()
     file: Express.Multer.File,
-    @Req() request: Express.Request,
+    @User() user: UserResponseDTO['userData'],
   ): Promise<ProductResponseDTO> {
-    return this.productService.update(id, updatePayload, request.user, file);
+    return this.productService.update(id, updatePayload, user, file);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: bigint) {
-    return this.productService.remove(id);
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+    @User() user: UserResponseDTO['userData'],
+  ) {
+    return this.productService.remove(id, user);
   }
 }

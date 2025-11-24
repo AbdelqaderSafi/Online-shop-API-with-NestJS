@@ -8,6 +8,7 @@ import { AuthGuard } from './modules/auth/guards/auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { ProductModule } from './modules/product/product.module';
 import { FilesModule } from './modules/files/files.module';
+import { OrderModule } from './modules/order/order.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { FilesModule } from './modules/files/files.module';
     }),
     ProductModule,
     FilesModule,
+    OrderModule,
   ],
   providers: [
     {
