@@ -8,6 +8,7 @@ import {
   UncaughtExceptionFilter,
   ZodExceptionFilter,
 } from './exceptions/exception';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 BigInt.prototype.toJSON = function () {
   return this.toString();
@@ -28,6 +29,14 @@ async function bootstrap() {
     new ZodExceptionFilter(),
     // الترتيب مهم
   );
+  const config = new DocumentBuilder()
+    .setTitle('Online Shop')
+    .setDescription('The Online Shop API description')
+    .setVersion('1.0')
+    .addTag('online-shop')
+    .build();
+  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, documentFactory);
 
   console.log('Environment:', process.env.NODE_ENV);
   await app.listen(process.env.PORT ?? 3000);

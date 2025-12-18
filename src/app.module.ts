@@ -9,9 +9,27 @@ import { RolesGuard } from './modules/auth/guards/roles.guard';
 import { ProductModule } from './modules/product/product.module';
 import { FilesModule } from './modules/files/files.module';
 import { OrderModule } from './modules/order/order.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000,
+        limit: 3,
+      },
+      {
+        name: 'medium',
+        ttl: 10000,
+        limit: 20,
+      },
+      {
+        name: 'long',
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     AuthModule,
     UserModule,
     DatabaseModule,
@@ -23,6 +41,10 @@ import { OrderModule } from './modules/order/order.module';
     OrderModule,
   ],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerModule,
+    },
     {
       provide: APP_GUARD,
       useClass: AuthGuard,

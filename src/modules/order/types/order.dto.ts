@@ -1,5 +1,4 @@
 import { Prisma } from 'generated/prisma';
-import { json } from 'zod';
 
 export type CreateOrderDTO = {
   productId: number;

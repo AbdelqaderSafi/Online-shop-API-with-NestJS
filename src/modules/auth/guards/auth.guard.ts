@@ -50,7 +50,7 @@ export class AuthGuard implements CanActivate {
       });
 
       // attach user to request
-      request.user = {
+      req.user = {
         ...removeFields(user, ['password']),
         id: String(user.id),
       };
